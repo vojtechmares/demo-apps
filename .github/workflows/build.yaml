@@ -1,0 +1,74 @@
+name: Build Docker Images
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # generate list of apps
+  get_app_list:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - id: set-matrix
+        run: |
+          export MATRIX=`ls */main.go | sed -e 's/\/.*//' | jq -R -s -c '{"app":split("\n")[:-1]}'`
+          echo "matrix=$(jq -r -c . <<< "$MATRIX")" >> $GITHUB_OUTPUT
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+  # build app(s)
+  build:
+    needs: get_app_list
+
+    permissions:
+      contents: read
+      packages: write
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.get_app_list.outputs.matrix) }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }} # checkout the correct branch name
+          fetch-tags: true
+
+      - name: setup qemu
+        uses: docker/setup-qemu-action@v3
+
+      - name: setup docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: docker metadata
+        uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}/${{ matrix.app }}
+          tags: |
+            type=ref,event=branch,suffix=-${{ github.sha }}
+            type=sha,format=long
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+
+      - name: build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.app }}/
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
