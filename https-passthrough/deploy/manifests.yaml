@@ -29,7 +29,6 @@ metadata:
   name: https-passthrough
   namespace: https-passthrough
 spec:
-  automountServiceAccountToken: false
   replicas: 1
   selector:
     matchLabels:
@@ -39,6 +38,7 @@ spec:
       labels:
         app: https-passthrough
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: https-passthrough
           image: ghcr.io/vojtechmares/demo-apps/https-passthrough:latest

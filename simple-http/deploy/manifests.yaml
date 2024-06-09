@@ -9,7 +9,6 @@ metadata:
   name: simple-http
   namespace: simple-http
 spec:
-  automountServiceAccountToken: false
   replicas: 1
   selector:
     matchLabels:
@@ -19,6 +18,7 @@ spec:
       labels:
         app: simple-http
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: simple-http
           image: ghcr.io/vojtechmares/demo-apps/simple-http:latest
