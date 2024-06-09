@@ -53,7 +53,7 @@ metadata:
   name: simple-http
   namespace: simple-http
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: letsencrypt-production
 spec:
   ingressClassName: nginx
   rules:
