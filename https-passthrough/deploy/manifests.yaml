@@ -103,3 +103,7 @@ spec:
                 name: https-passthrough
                 port:
                   name: https
+  tls:
+    - hosts:
+        - https-passthrough.maresdemo.com
+      secretName: https-passthrough-tls
