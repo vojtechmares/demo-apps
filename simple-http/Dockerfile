@@ -2,12 +2,12 @@ FROM golang:1.22-alpine AS builder
 
 WORKDIR /build
 
-COPY go.mod go.sum ./
+COPY . .
 
 RUN go mod download
 RUN go mod verify
 
-RUN go build -o simple-http main.go
+RUN go build -o simple-http .
 
 FROM alpine:3.19 AS runtime
 
