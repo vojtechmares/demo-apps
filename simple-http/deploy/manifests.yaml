@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: simple-http
-          image: ghcr.io/vojtechmares/demo-aps/simple-http:latest
+          image: ghcr.io/vojtechmares/demo-apps/simple-http:latest
           ports:
             - name: http
               containerPort: 8080
