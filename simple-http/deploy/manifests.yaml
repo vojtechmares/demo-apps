@@ -67,3 +67,7 @@ spec:
                 name: simple-http
                 port:
                   name: http
+  tls:
+    - hosts:
+        - simple-http.maresdemo.com
+      secretName: simple-http-ingress-tls
