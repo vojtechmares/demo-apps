@@ -7,10 +7,10 @@ COPY . .
 RUN go mod download
 RUN go mod verify
 
-RUN go build -o simple-http .
+RUN go build -o https-passthrough .
 
 FROM alpine:3.19 AS runtime
 
-COPY --from=builder /build/simple-http /srv/simple-http
+COPY --from=builder /build/https-passthrough /srv/https-passthrough
 
-CMD ["/srv/simple-http"]
+CMD ["/srv/https-passthrough"]
