@@ -11,6 +11,8 @@ RUN go build -o https-passthrough .
 
 FROM alpine:3.19 AS runtime
 
+RUN apk add --no-cache ca-certificates
+
 COPY --from=builder /build/https-passthrough /srv/https-passthrough
 
 CMD ["/srv/https-passthrough"]

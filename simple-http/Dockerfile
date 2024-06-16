@@ -11,6 +11,8 @@ RUN go build -o simple-http .
 
 FROM alpine:3.19 AS runtime
 
+RUN apk add --no-cache ca-certificates
+
 COPY --from=builder /build/simple-http /srv/simple-http
 
 CMD ["/srv/simple-http"]
