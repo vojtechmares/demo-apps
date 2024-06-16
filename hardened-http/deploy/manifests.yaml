@@ -34,24 +34,27 @@ spec:
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        readOnlyRootFilesystem: true
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-            - ALL
-          add:
-            - NET_BIND_SERVICE
-        seccompProfile:
-          type: RuntimeDefault
-        # seLinuxOptions:
-        #   type: spc_t
+        fsGroup: 1000
       containers:
         - name: hardened-http
           image: ghcr.io/vojtechmares/demo-apps/hardened-http:latest
           ports:
             - name: http
               containerPort: 8443
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+            seccompProfile:
+              type: RuntimeDefault
+            # seLinuxOptions:
+            #   type: spc_t
           resources:
             requests:
               memory: "64Mi"
