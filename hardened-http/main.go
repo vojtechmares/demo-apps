@@ -16,7 +16,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, World")
+		fmt.Fprintf(w, "Hello, hardened World")
 	})
 
 	err := http.ListenAndServeTLS(":8443", certFile, keyFile, nil)
