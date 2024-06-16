@@ -1,0 +1,146 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hardened-http
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: hardened-http-tls
+  namespace: hardened-http
+spec:
+  secretName: hardened-http-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - hardened-http.maresdemo.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hardened-http
+  namespace: hardened-http
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hardened-http
+  template:
+    metadata:
+      labels:
+        app: hardened-http
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+          add:
+            - NET_BIND_SERVICE
+        seccompProfile:
+          type: RuntimeDefault
+        # seLinuxOptions:
+        #   type: spc_t
+      containers:
+        - name: hardened-http
+          image: ghcr.io/vojtechmares/demo-apps/hardened-http:latest
+          ports:
+            - name: http
+              containerPort: 8443
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+          env:
+            - name: CERT_FILE
+              value: /etc/ssl/certs/tls.crt
+            - name: KEY_FILE
+              value: /etc/ssl/certs/tls.key
+          volumeMounts:
+            - name: hardened-http-tls
+              mountPath: /etc/ssl/certs
+              readOnly: true
+      volumes:
+        - name: hardened-http-tls
+          secret:
+            secretName: hardened-http-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hardened-http
+  namespace: hardened-http
+spec:
+  selector:
+    app: hardened-http
+  ports:
+    - name: http
+      protocol: TCP
+      port: 443
+      targetPort: 8443
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hardened-http
+  namespace: hardened-http
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: hardened-http.maresdemo.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hardened-http
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - hardened-http.maresdemo.com
+      secretName: hardened-http-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hardened-http
+  namespace: hardened-http
+spec:
+  podSelector:
+    matchLabels:
+      app: hardened-http
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 8443
+          protocol: TCP
+  egress:
+    # allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
