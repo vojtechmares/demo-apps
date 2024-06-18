@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: http-postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-headless
+  namespace: http-postgres
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: http-postgres
+spec:
+  serviceName: postgres-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16.3
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: postgres
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+              subPath: data
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: http-postgres
+  namespace: http-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: http-postgres
+  template:
+    metadata:
+      labels:
+        app: http-postgres
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: http-postgres
+          image: ghcr.io/vojtechmares/demo-apps/http-postgres:latest
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          env:
+            - name: POSTGRES_URL
+              value: "postgres://postgres:postgres@postgres-headless:5432"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: http-postgres
+  namespace: http-postgres
+spec:
+  selector:
+    app: http-postgres
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: http-postgres
+  namespace: http-postgres
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: http-postgres.maresdemo.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: http-postgres
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - http-postgres.maresdemo.com
+      secretName: http-postgres-ingress-tls
