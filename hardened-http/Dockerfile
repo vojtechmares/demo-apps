@@ -9,7 +9,7 @@ RUN go mod verify
 
 RUN go build -o hardened-http .
 
-FROM alpine:3.20 AS runtime
+FROM alpine:3.22 AS runtime
 
 RUN apk add --no-cache ca-certificates
 
