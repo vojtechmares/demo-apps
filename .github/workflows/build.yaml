@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - id: set-matrix
         run: |
           export MATRIX=`ls */main.go | sed -e 's/\/.*//' | jq -R -s -c '{"app":split("\n")[:-1]}'`
@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }} # checkout the correct branch name
           fetch-tags: true
