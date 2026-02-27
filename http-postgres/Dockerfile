@@ -9,7 +9,7 @@ RUN go mod verify
 
 RUN go build -o http-postgres .
 
-FROM alpine:3.22 AS runtime
+FROM alpine:3.23 AS runtime
 
 RUN apk add --no-cache ca-certificates
 
